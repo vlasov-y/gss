@@ -19,10 +19,12 @@ var _ = Describe("ACME", func() {
 		})
 
 		It("should return an error for an invalid email", func() {
-			input := "invalid"
-			_, err := config.DecodeACMEEmail(reflect.TypeFor[string](), reflect.TypeFor[config.ACMEEmail](), input)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("invalid email address"))
+			for _, input := range []any{
+				"invalid", true, 3.14, nil, []string{"invalid"},
+			} {
+				_, err := config.DecodeACMEEmail(reflect.TypeOf(input), reflect.TypeFor[config.ACMEEmail](), input)
+				Expect(err).To(HaveOccurred())
+			}
 		})
 	})
 
@@ -76,12 +78,13 @@ var _ = Describe("ACME", func() {
 		})
 
 		It("should return an error for invalid domain", func() {
-			for _, input := range []string{
+			for _, input := range []any{
 				"com", ",", "", "*", "*.*", "invalid..com",
+				[]int{1, 2, 3},
+				true, 3.14,
 			} {
 				_, err := config.DecodeACMEDomains(reflect.TypeOf(input), reflect.TypeFor[config.ACMEDomains](), input)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("invalid domain name"))
 			}
 		})
 

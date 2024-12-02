@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
@@ -71,7 +72,11 @@ func DecodeACMEDomains(f reflect.Type, t reflect.Type, data interface{}) (interf
 	// If the input is already a []string, parse it directly
 	if f.Kind() == reflect.Slice {
 		domains := []string{}
-		for i, object := range data.([]interface{}) {
+		slice, ok := data.([]interface{})
+		if !ok {
+			return nil, errors.New("unsupported type for ACME domains: cannot cast slice to []interface{}")
+		}
+		for i, object := range slice {
 			s, ok := object.(string)
 			if !ok {
 				return nil, fmt.Errorf("unsupported type for ACME domains at index %d, expected string, got %s", i, reflect.TypeOf(object))
