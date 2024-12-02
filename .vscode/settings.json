@@ -1,9 +1,37 @@
 {
   "cSpell.words": [
+    "Buildx",
+    "coverprofile",
+    "distroless",
+    "dylib",
     "envconfig",
     "ginkgo",
+    "goarch",
+    "golangci",
+    "goreleaser",
+    "govet",
+    "imagetools",
+    "ldflags",
     "mapstructure",
+    "MAXVERSION",
+    "nonroot",
     "onsi",
-    "TLSCA"
+    "opencontainers",
+    "sonarcloud",
+    "sonarsource",
+    "TLSCA",
+    "vlasov"
+  ],
+  "cSpell.ignorePaths": [
+    "package-lock.json",
+    "node_modules",
+    "vscode-extension",
+    ".git/{info,lfs,logs,refs,objects}/**",
+    ".git/{index,*refs,*HEAD}",
+    ".vscode",
+    ".vscode-insiders",
+    "go.mod",
+    "go.sum",
+    "dist"
   ]
 }
