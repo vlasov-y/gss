@@ -40,7 +40,7 @@ jobs:
         run: go mod tidy
 
       - name: Unit tests
-        run: go test -v --ginkgo.v --coverprofile=reports/coverage.out ./...
+        run: go test -v ./... --ginkgo.v --coverprofile=reports/coverage.out
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v3
