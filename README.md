@@ -3,6 +3,7 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9757/badge)](https://www.bestpractices.dev/projects/9757)
 ![Build](https://github.com/vlasov-y/gss/workflows/Build/badge.svg)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Coverage Status](https://badge.coveralls.io/repos/github/vlasov-y/gss/badge.svg?branch=main)](https://badge.coveralls.io/github/vlasov-y/gss?branch=main)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vlasov-y_gss&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vlasov-y_gss)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=vlasov-y_gss&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=vlasov-y_gss)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=vlasov-y_gss&metric=coverage)](https://sonarcloud.io/summary/new_code?id=vlasov-y_gss)
