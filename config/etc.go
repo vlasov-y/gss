@@ -3,13 +3,15 @@ package config
 import (
 	"compress/gzip"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"golang.org/x/net/http/httpguts"
+	"gopkg.in/yaml.v3"
 )
 
 func DecodeRoot(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
@@ -23,11 +25,11 @@ func DecodeRoot(f reflect.Type, t reflect.Type, data interface{}) (interface{}, 
 	root := data.(string)
 	root, err := filepath.Abs(root)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve absolute path: %v", err)
+		return nil, fmt.Errorf("failed to retrieve absolute path: %w", err)
 	}
 	stat, err := os.Stat(root)
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat: %v", err)
+		return nil, fmt.Errorf("failed to stat: %w", err)
 	}
 	if !stat.IsDir() {
 		return nil, fmt.Errorf("root is not a directory: %s", root)
@@ -35,31 +37,73 @@ func DecodeRoot(f reflect.Type, t reflect.Type, data interface{}) (interface{}, 
 	return Root(filepath.Clean(root)), nil
 }
 
+// DecodeHeaders decodes data into http.Header type.
+// Supports YAML strings or map[string]interface{} as input.
 func DecodeHeaders(_ reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-	// Ensure the target type is Headers
-	if t != reflect.TypeOf(Headers{}) {
+	// Ensure the target type is http.Header
+	if t != reflect.TypeOf(http.Header{}) {
 		return data, nil
 	}
-	headers := Headers{}
+	headers := http.Header{}
 	switch v := data.(type) {
 	// Case 1: Data is a string (e.g., from an environment variable)
 	case string:
-		if err := yaml.Unmarshal([]byte(v), &headers); err != nil {
-			return nil, fmt.Errorf("failed to parse headers YAML from string: %v", err)
+		yamlStr := v
+
+		// Unmarshal YAML to map[string]interface{}
+		var rawHeaders map[string]interface{}
+		if err := yaml.Unmarshal([]byte(yamlStr), &rawHeaders); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal YAML: %w", err)
 		}
-	// Case 2: Data is already a map[string]string (e.g., from a YAML file)
+
+		// Validate and add to headers
+		for key, value := range rawHeaders {
+			if !httpguts.ValidHeaderFieldName(key) {
+				return nil, fmt.Errorf("invalid header key: %s", key)
+			}
+			switch val := value.(type) {
+			case string:
+				headers.Add(key, val)
+			case []interface{}:
+				for _, item := range val {
+					strItem, ok := item.(string)
+					if !ok {
+						return nil, fmt.Errorf("invalid value in list for key '%s': expected string, got %T", key, item)
+					}
+					headers.Add(key, strItem)
+				}
+			default:
+				return nil, fmt.Errorf("invalid header value for key '%s': expected string or []string, got %T", key, value)
+			}
+		}
+
+	// Case 2: Data is already a map[string]interface{} (e.g., from a YAML file)
 	case map[string]interface{}:
 		for key, value := range v {
-			strValue, ok := value.(string)
-			if !ok {
-				return nil, fmt.Errorf("invalid header value for key '%s': expected string, got %T", key, value)
+			if !httpguts.ValidHeaderFieldName(key) {
+				return nil, fmt.Errorf("invalid header key: %s", key)
 			}
-			headers[key] = strValue
+			switch val := value.(type) {
+			case string:
+				headers.Add(key, val)
+			case []interface{}:
+				for _, item := range val {
+					strItem, ok := item.(string)
+					if !ok {
+						return nil, fmt.Errorf("invalid value in list for key '%s': expected string, got %T", key, item)
+					}
+					headers.Add(key, strItem)
+				}
+			default:
+				return nil, fmt.Errorf("invalid header value for key '%s': expected string or []string, got %T", key, value)
+			}
 		}
+
 	// Case 3: Unsupported type
 	default:
 		return nil, fmt.Errorf("unsupported headers type: %T", data)
 	}
+
 	return headers, nil
 }
 

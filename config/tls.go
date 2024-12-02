@@ -26,14 +26,14 @@ func DecodeTLSCertificate(f reflect.Type, t reflect.Type, data interface{}) (int
 	if block != nil && block.Type == "CERTIFICATE" {
 		parsedCert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return nil, fmt.Errorf("invalid certificate content: %v", err)
+			return nil, fmt.Errorf("invalid certificate content: %w", err)
 		}
 		return TLSCertificate{Block: block, Cert: parsedCert}, nil
 	}
 	// If parsing as PEM fails, treat input as a file path
 	bytes, err := os.ReadFile(input)
 	if err != nil {
-		return nil, fmt.Errorf("certificate file not found or unreadable: %v", err)
+		return nil, fmt.Errorf("certificate file not found or unreadable: %w", err)
 	}
 	block, _ = pem.Decode(bytes)
 	if block == nil || block.Type != "CERTIFICATE" {
@@ -87,7 +87,7 @@ func DecodeTLSPrivateKey(f reflect.Type, t reflect.Type, data interface{}) (inte
 	// If parsing as PEM fails, treat input as a file path
 	bytes, err := os.ReadFile(input)
 	if err != nil {
-		return nil, fmt.Errorf("private key file not found or unreadable: %v", err)
+		return nil, fmt.Errorf("private key file not found or unreadable: %w", err)
 	}
 	block, _ = pem.Decode(bytes)
 	if block == nil {
@@ -95,7 +95,7 @@ func DecodeTLSPrivateKey(f reflect.Type, t reflect.Type, data interface{}) (inte
 	}
 	privateKey, err := parsePrivateKey(block)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key: %v", err)
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
 	return TLSPrivateKey{Block: block, Key: privateKey}, nil
 }

@@ -37,7 +37,7 @@ func DecodeACMEURL(f reflect.Type, t reflect.Type, data interface{}) (interface{
 	// URL validation logic
 	parsedURL, err := url.ParseRequestURI(value)
 	if err != nil {
-		return nil, fmt.Errorf("invalid ACME URL: %v", err)
+		return nil, fmt.Errorf("invalid ACME URL: %w", err)
 	}
 	return ACMEURL(parsedURL.String()), nil
 }

@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -15,13 +16,13 @@ import (
 func Build() (*Config, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return nil, fmt.Errorf("unable to get cwd: %v", err)
+		return nil, fmt.Errorf("unable to get cwd: %w", err)
 	}
 	cfg := &Config{
 		viper:       viper.NewWithOptions(viper.EnvKeyReplacer(&envReplacer{})),
 		Root:        Root(cwd),
 		Port:        8080,
-		Headers:     Headers{},
+		Headers:     http.Header{},
 		Compression: Compression(gzip.BestSpeed),
 		Metrics: MetricsConfig{
 			Enabled:     false,
@@ -68,7 +69,7 @@ func Build() (*Config, error) {
 		cfg.viper.SetConfigFile(configPath) // Set the config file path
 		// Read the config file
 		if err := cfg.viper.ReadInConfig(); err != nil {
-			return nil, fmt.Errorf("unable to read config file: %v", err)
+			return nil, fmt.Errorf("unable to read config file: %w", err)
 		}
 	}
 
@@ -84,7 +85,7 @@ func Build() (*Config, error) {
 			DecodeACMEDomains, DecodeACMEURL, DecodeACMEChallengePath, DecodeACMEEmail,
 		),
 	)); err != nil {
-		return nil, fmt.Errorf("unable to unmarshal config into struct: %v", err)
+		return nil, fmt.Errorf("unable to unmarshal config into struct: %w", err)
 	}
 	// Return nil if everything went fine
 	return cfg, nil

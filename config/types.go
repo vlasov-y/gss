@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"net/http"
 
 	"github.com/spf13/viper"
 )
@@ -13,7 +14,7 @@ type Config struct {
 	viper       *viper.Viper  `json:"-" yaml:"-"`
 	Root        Root          `mapstructure:"root"`
 	Port        uint16        `mapstructure:"port"`
-	Headers     Headers       `mapstructure:"headers"`
+	Headers     http.Header   `mapstructure:"headers"`
 	Compression Compression   `mapstructure:"compression"`
 	TLS         TLSConfig     `mapstructure:"tls"`
 	Metrics     MetricsConfig `mapstructure:"metrics"`
@@ -44,9 +45,6 @@ type MetricsConfig struct {
 }
 
 type Root string
-
-// Headers is a map of header names to values.
-type Headers map[string]string
 
 // TLSCertificate represents a PEM-encoded X.509 certificate.
 type TLSCertificate struct {

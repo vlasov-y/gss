@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -138,7 +139,9 @@ tls:
 
 		// Verify Headers and Compression
 		Expect(cfg.Headers).ToNot(BeEmpty())
-		Expect(cfg.Headers).To(Equal(config.Headers{"key": "value"}))
+		headers := http.Header{}
+		headers.Add("key", "value")
+		Expect(cfg.Headers).To(Equal(headers))
 		Expect(cfg.Compression).To(Equal(config.Compression(gzip.DefaultCompression)))
 
 		// Verify TLSConfig values
