@@ -1,8 +1,9 @@
 package config_test
 
 import (
-	"gss/config"
 	"reflect"
+
+	"github.com/vlasov-y/gss/config"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

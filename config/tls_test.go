@@ -2,11 +2,11 @@ package config_test
 
 import (
 	"crypto/tls"
-	"gss/config"
 	"reflect"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/vlasov-y/gss/config"
 )
 
 var _ = Describe("TLS parsing", func() {

@@ -7,8 +7,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"gss/config"
-	"gss/pkg"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +15,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/vlasov-y/gss/config"
+	"github.com/vlasov-y/gss/pkg"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

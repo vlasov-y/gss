@@ -10,7 +10,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"gss/config"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/vlasov-y/gss/config"
 )
 
 func TestConfig(t *testing.T) {

@@ -1,4 +1,4 @@
-module gss
+module github.com/vlasov-y/gss
 
 go 1.22.4
 
