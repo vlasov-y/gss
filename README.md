@@ -1,7 +1,7 @@
 # Go Static Server
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9757/badge)](https://www.bestpractices.dev/projects/9757)
-![Build](https://github.com/github/docs/actions/workflows/build.yml/badge.svg?branch=main)
+![Build](https://github.com/github/docs/actions/workflows/build.yaml/badge.svg?branch=main)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Simple server written in Go to serve a static site.
