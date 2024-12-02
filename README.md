@@ -1,7 +1,7 @@
 # Go Static Server
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9757/badge)](https://www.bestpractices.dev/projects/9757)
-![Build](https://github.com/vlasov-y/gss/workflows/Build/badge.svg?branch=main)
+![Build](https://github.com/vlasov-y/gss/workflows/Build/badge.svg)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vlasov-y_gss&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vlasov-y_gss)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=vlasov-y_gss&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=vlasov-y_gss)
