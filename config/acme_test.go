@@ -81,6 +81,7 @@ var _ = Describe("ACME", func() {
 			for _, input := range []any{
 				"com", ",", "", "*", "*.*", "invalid..com",
 				[]int{1, 2, 3},
+				[]map[string]string{{"a": "b"}},
 				true, 3.14,
 			} {
 				_, err := config.DecodeACMEDomains(reflect.TypeOf(input), reflect.TypeFor[config.ACMEDomains](), input)

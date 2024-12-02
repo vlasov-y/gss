@@ -165,6 +165,37 @@ tls:
 		Expect(cfg.TLS.ACME.Domains).To(ContainElement("www.example.com"))
 		Expect(cfg.TLS.ACME.ChallengePath).To(Equal(config.ACMEChallengePath("/.well-known/acme-challenge/")))
 	})
+
+	It("should return an error for a broken config", func() {
+		// Create a sample Config object
+		yamlData := `
+headers:
+  key:
+		sub: key
+`
+
+		// Write the YAML content to the temporary file
+		err = os.WriteFile(configFile, []byte(yamlData), 0o644)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Env variables override
+		env := map[string]string{
+			"CONFIG_PATH": configFile,
+		}
+		for name, value := range env {
+			Expect(os.Setenv(name, value)).To(Succeed())
+		}
+
+		defer func() {
+			for name := range env {
+				Expect(os.Unsetenv(name)).To(Succeed())
+			}
+		}()
+
+		// Initialize the config from YAML file
+		cfg, err = config.Build()
+		Expect(err).To(HaveOccurred())
+	})
 })
 
 func generateTLSCertificate(certFile, keyFile string) error {
