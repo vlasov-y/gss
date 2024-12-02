@@ -43,7 +43,7 @@ jobs:
       - name: Cache dist
         uses: actions/cache@v4
         with:
-          path: dist
+          path: docker-images.txt
           key: dist-${{ github.sha }}
 
       - name: Install Go
@@ -81,5 +81,5 @@ jobs:
       - name: Docker create manifest
         run: >-
           docker image ls 'ghcr.io/${{ github.repository }}' --format='{{printf "%s:%s" .Repository .Tag}}' |
-          tee dist/docker-images.txt |
+          tee docker-images.txt |
           xargs docker buildx imagetools create --tag 'ghcr.io/${{ github.repository }}:latest'

@@ -42,11 +42,11 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          args: release --fail-fast --skip docker
+          args: release --clean --fail-fast --skip docker
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Docker create manifest
         run: >-
-          cat dist/docker-images.txt |
+          cat docker-images.txt |
           xargs docker buildx imagetools create --tag 'ghcr.io/${{ github.repository }}:${{ github.ref_name }}'
