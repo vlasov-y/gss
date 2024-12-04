@@ -57,7 +57,7 @@ func DecodeTLSPrivateKey(f reflect.Type, t reflect.Type, data interface{}) (inte
 	// Try to parse input as PEM content directly
 	block, _ := pem.Decode([]byte(input))
 	if block != nil {
-		privateKey, err := parsePrivateKey(block)
+		privateKey, err := parseTLSPrivateKey(block)
 		if err == nil {
 			return TLSPrivateKey{Block: block, Key: privateKey}, nil
 		}
@@ -71,7 +71,7 @@ func DecodeTLSPrivateKey(f reflect.Type, t reflect.Type, data interface{}) (inte
 	if block == nil {
 		return nil, fmt.Errorf("file %s does not contain valid PEM data", input)
 	}
-	privateKey, err := parsePrivateKey(block)
+	privateKey, err := parseTLSPrivateKey(block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
@@ -79,7 +79,7 @@ func DecodeTLSPrivateKey(f reflect.Type, t reflect.Type, data interface{}) (inte
 }
 
 // Helper function to parse private keys from a PEM block
-func parsePrivateKey(block *pem.Block) (interface{}, error) {
+func parseTLSPrivateKey(block *pem.Block) (interface{}, error) {
 	var privateKey interface{}
 	var err error
 	switch block.Type {
@@ -127,31 +127,6 @@ func DecodeTLSCurves(f reflect.Type, t reflect.Type, data interface{}) (interfac
 	if t != reflect.TypeOf(TLSCurves{}) {
 		return data, nil
 	}
-	// Function to parse TLS curves
-	parseTLSCurves := func(curves []string) (TLSCurves, error) {
-		// Map of supported TLS curves
-		supported := map[string]tls.CurveID{
-			"P-256":   tls.CurveP256,
-			"P-384":   tls.CurveP384,
-			"P-521":   tls.CurveP521,
-			"X25519":  tls.X25519,
-			"ED25519": tls.X25519, // ED25519 is also supported as X25519
-		}
-		var result TLSCurves
-		for _, curve := range curves {
-			// Trim spaces and convert to uppercase for case-insensitive matching
-			curve = strings.ToUpper(strings.TrimSpace(curve))
-			if id, ok := supported[curve]; ok {
-				if slices.Contains(result, id) {
-					return nil, fmt.Errorf("duplicate TLS curves: %s", curve)
-				}
-				result = append(result, id)
-			} else {
-				return nil, fmt.Errorf("unsupported TLS curve: %s", curve)
-			}
-		}
-		return result, nil
-	}
 	// If the input is a string, split it into a slice of curves
 	if f.Kind() == reflect.String {
 		curveStr := data.(string)
@@ -175,49 +150,36 @@ func DecodeTLSCurves(f reflect.Type, t reflect.Type, data interface{}) (interfac
 	return nil, fmt.Errorf("unsupported type for TLS curves, expected string or []string, got %s", f.Kind())
 }
 
+// Function to parse TLS curves
+func parseTLSCurves(curves []string) (TLSCurves, error) {
+	// Map of supported TLS curves
+	supported := map[string]tls.CurveID{
+		"P-256":   tls.CurveP256,
+		"P-384":   tls.CurveP384,
+		"P-521":   tls.CurveP521,
+		"X25519":  tls.X25519,
+		"ED25519": tls.X25519, // ED25519 is also supported as X25519
+	}
+	var result TLSCurves
+	for _, curve := range curves {
+		// Trim spaces and convert to uppercase for case-insensitive matching
+		curve = strings.ToUpper(strings.TrimSpace(curve))
+		if id, ok := supported[curve]; ok {
+			if slices.Contains(result, id) {
+				return nil, fmt.Errorf("duplicate TLS curves: %s", curve)
+			}
+			result = append(result, id)
+		} else {
+			return nil, fmt.Errorf("unsupported TLS curve: %s", curve)
+		}
+	}
+	return result, nil
+}
+
 func DecodeTLSCiphers(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
 	// Check if the target type is TLSCiphers
 	if t != reflect.TypeOf(TLSCiphers{}) {
 		return data, nil
-	}
-	// Function to parse TLS ciphers
-	parseTLSCiphers := func(ciphers []string) (TLSCiphers, error) {
-		// Map of supported TLS ciphers
-		supported := map[string]uint16{
-			"TLS_AES_128_GCM_SHA256":                        tls.TLS_AES_128_GCM_SHA256,
-			"TLS_AES_256_GCM_SHA384":                        tls.TLS_AES_256_GCM_SHA384,
-			"TLS_CHACHA20_POLY1305_SHA256":                  tls.TLS_CHACHA20_POLY1305_SHA256,
-			"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":          tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-			"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-			"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":          tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-			"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384":       tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-			"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA":              tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
-			"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA":           tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-			"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":            tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-			"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":         tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":            tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-			"TLS_ECDHE_RSA_WITH_RC4_128_SHA":                tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
-			"TLS_RSA_WITH_AES_128_CBC_SHA256":               tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-			"TLS_RSA_WITH_AES_128_GCM_SHA256":               tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-			"TLS_RSA_WITH_AES_256_GCM_SHA384":               tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-		}
-		var result TLSCiphers
-		for _, c := range ciphers {
-			if cipher, ok := supported[c]; ok {
-				if slices.Contains(result, cipher) {
-					return nil, fmt.Errorf("duplicate TLS cipher suite: %s", c)
-				}
-				result = append(result, cipher)
-			} else {
-				return nil, fmt.Errorf("unsupported TLS cipher suite: %s", c)
-			}
-		}
-		return result, nil
 	}
 	// If the input is a string, split it into a slice of ciphers
 	if f.Kind() == reflect.String {
@@ -240,4 +202,44 @@ func DecodeTLSCiphers(f reflect.Type, t reflect.Type, data interface{}) (interfa
 	}
 	// If not a string or []string, return an error
 	return nil, fmt.Errorf("unsupported type for TLS ciphers, expected string or []string, got %s", f.Kind())
+}
+
+// Function to parse TLS ciphers
+func parseTLSCiphers(ciphers []string) (TLSCiphers, error) {
+	// Map of supported TLS ciphers
+	supported := map[string]uint16{
+		"TLS_AES_128_GCM_SHA256":                        tls.TLS_AES_128_GCM_SHA256,
+		"TLS_AES_256_GCM_SHA384":                        tls.TLS_AES_256_GCM_SHA384,
+		"TLS_CHACHA20_POLY1305_SHA256":                  tls.TLS_CHACHA20_POLY1305_SHA256,
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":          tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":          tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384":       tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+		"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA":              tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
+		"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA":           tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":            tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":         tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":            tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+		"TLS_ECDHE_RSA_WITH_RC4_128_SHA":                tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
+		"TLS_RSA_WITH_AES_128_CBC_SHA256":               tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+		"TLS_RSA_WITH_AES_128_GCM_SHA256":               tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+		"TLS_RSA_WITH_AES_256_GCM_SHA384":               tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	}
+	var result TLSCiphers
+	for _, c := range ciphers {
+		if cipher, ok := supported[c]; ok {
+			if slices.Contains(result, cipher) {
+				return nil, fmt.Errorf("duplicate TLS cipher suite: %s", c)
+			}
+			result = append(result, cipher)
+		} else {
+			return nil, fmt.Errorf("unsupported TLS cipher suite: %s", c)
+		}
+	}
+	return result, nil
 }
