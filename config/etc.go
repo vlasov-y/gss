@@ -128,6 +128,9 @@ func addHeader(headers *http.Header, key string, value string) error {
 	if !httpguts.ValidHeaderFieldName(key) {
 		return fmt.Errorf("invalid header key: %s", key)
 	}
+	if len(strings.TrimSpace(value)) == 0 {
+		return fmt.Errorf("empty value for key: %s", key)
+	}
 	headers.Add(key, value)
 	return nil
 }

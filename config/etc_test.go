@@ -182,7 +182,14 @@ var _ = Describe("Etc", func() {
 
 		It("should return an error for invalid headers", func() {
 			for _, input := range []any{
-				`{"Invalid !":'B:C'}`,
+				`{"empty":""}`,
+				`{"empty":" "}`,
+				`{"invalid ":""}`,
+				map[string]any{"invalid ": ""},
+				map[string]string{"invalid ": "valid"},
+				map[string]string{"valid": " "},
+				map[string][]string{"invalid ": {"valid"}},
+				map[string][]string{"valid": {" "}},
 			} {
 				output, err := config.DecodeHeaders(reflect.TypeOf(input), reflect.TypeFor[http.Header](), input)
 				fmt.Println(output)
