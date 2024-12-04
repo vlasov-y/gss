@@ -47,21 +47,6 @@ func DecodeACMEDomains(f reflect.Type, t reflect.Type, data interface{}) (interf
 	if t != reflect.TypeOf(ACMEDomains{}) {
 		return data, nil
 	}
-	parseDomains := func(domains []string) (ACMEDomains, error) {
-		domainRegex := `^(\*\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$`
-		var result ACMEDomains
-		for _, domain := range domains {
-			domain = strings.TrimSpace(domain)
-			if !regexp.MustCompile(domainRegex).MatchString(domain) {
-				return nil, fmt.Errorf("invalid domain name: %s", domain)
-			}
-			if slices.Contains(result, domain) {
-				return nil, fmt.Errorf("duplicate domain name: %s", domain)
-			}
-			result = append(result, domain)
-		}
-		return result, nil
-	}
 	// If the input is a string, split it into a slice of domains
 	if f.Kind() == reflect.String {
 		domainsStr := data.(string)
@@ -87,6 +72,22 @@ func DecodeACMEDomains(f reflect.Type, t reflect.Type, data interface{}) (interf
 	}
 	// If not a string or []string, return an error
 	return nil, fmt.Errorf("unsupported type for ACME domains, expected string or []string, got %s", f.Kind())
+}
+
+func parseDomains(domains []string) (ACMEDomains, error) {
+	domainRegex := `^(\*\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$`
+	var result ACMEDomains
+	for _, domain := range domains {
+		domain = strings.TrimSpace(domain)
+		if !regexp.MustCompile(domainRegex).MatchString(domain) {
+			return nil, fmt.Errorf("invalid domain name: %s", domain)
+		}
+		if slices.Contains(result, domain) {
+			return nil, fmt.Errorf("duplicate domain name: %s", domain)
+		}
+		result = append(result, domain)
+	}
+	return result, nil
 }
 
 func DecodeACMEChallengePath(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {

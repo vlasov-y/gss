@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func DecodeRoot(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+func DecodeRoot(f reflect.Type, t reflect.Type, data any) (any, error) {
 	// Ensure the target type is Headers
 	if t != reflect.TypeFor[Root]() {
 		return data, nil
@@ -38,76 +38,101 @@ func DecodeRoot(f reflect.Type, t reflect.Type, data interface{}) (interface{}, 
 }
 
 // DecodeHeaders decodes data into http.Header type.
-// Supports YAML strings or map[string]interface{} as input.
-func DecodeHeaders(_ reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+// Supports string (YAML), map[string]any, map[string]string, and map[string][]string as input.
+func DecodeHeaders(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
 	// Ensure the target type is http.Header
 	if t != reflect.TypeOf(http.Header{}) {
 		return data, nil
 	}
-	headers := http.Header{}
-	switch v := data.(type) {
-	// Case 1: Data is a string (e.g., from an environment variable)
-	case string:
-		yamlStr := v
-
-		// Unmarshal YAML to map[string]interface{}
-		var rawHeaders map[string]interface{}
-		if err := yaml.Unmarshal([]byte(yamlStr), &rawHeaders); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal YAML: %w", err)
-		}
-
-		// Validate and add to headers
-		for key, value := range rawHeaders {
-			if !httpguts.ValidHeaderFieldName(key) {
-				return nil, fmt.Errorf("invalid header key: %s", key)
-			}
-			switch val := value.(type) {
-			case string:
-				headers.Add(key, val)
-			case []interface{}:
-				for _, item := range val {
-					strItem, ok := item.(string)
-					if !ok {
-						return nil, fmt.Errorf("invalid value in list for key '%s': expected string, got %T", key, item)
-					}
-					headers.Add(key, strItem)
-				}
-			default:
-				return nil, fmt.Errorf("invalid header value for key '%s': expected string or []string, got %T", key, value)
-			}
-		}
-
-	// Case 2: Data is already a map[string]interface{} (e.g., from a YAML file)
-	case map[string]interface{}:
-		for key, value := range v {
-			if !httpguts.ValidHeaderFieldName(key) {
-				return nil, fmt.Errorf("invalid header key: %s", key)
-			}
-			switch val := value.(type) {
-			case string:
-				headers.Add(key, val)
-			case []interface{}:
-				for _, item := range val {
-					strItem, ok := item.(string)
-					if !ok {
-						return nil, fmt.Errorf("invalid value in list for key '%s': expected string, got %T", key, item)
-					}
-					headers.Add(key, strItem)
-				}
-			default:
-				return nil, fmt.Errorf("invalid header value for key '%s': expected string or []string, got %T", key, value)
-			}
-		}
-
-	// Case 3: Unsupported type
+	switch f {
+	case reflect.TypeFor[string]():
+		return decodeHeadersFromYAML(data.(string))
+	case reflect.TypeFor[map[string]any]():
+		return decodeHeadersFromMap(data.(map[string]any))
+	case reflect.TypeFor[map[string]string]():
+		return decodeHeadersFromStringMap(data.(map[string]string))
+	case reflect.TypeFor[map[string][]string]():
+		return decodeHeadersFromMultiValueMap(data.(map[string][]string))
 	default:
 		return nil, fmt.Errorf("unsupported headers type: %T", data)
 	}
+}
 
+// decodeHeadersFromYAML unmarshals a YAML string into http.Header.
+func decodeHeadersFromYAML(yamlStr string) (http.Header, error) {
+	var rawHeaders map[string]any
+	if err := yaml.Unmarshal([]byte(yamlStr), &rawHeaders); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal YAML: %w", err)
+	}
+	return decodeHeadersFromMap(rawHeaders)
+}
+
+// decodeHeadersFromMap handles map[string]any and converts it into http.Header.
+func decodeHeadersFromMap(m map[string]any) (http.Header, error) {
+	headers := http.Header{}
+	for key, value := range m {
+		switch v := value.(type) {
+		case string:
+			if err := addHeader(&headers, key, value.(string)); err != nil {
+				return nil, err
+			}
+		case []string:
+			for _, item := range value.([]string) {
+				if err := addHeader(&headers, key, item); err != nil {
+					return nil, err
+				}
+			}
+		case []any:
+			for i, item := range value.([]any) {
+				if str, ok := item.(string); ok {
+					if err := addHeader(&headers, key, str); err != nil {
+						return nil, err
+					}
+				} else {
+					return nil, fmt.Errorf("invalid header value for key '%s' at index '%d': could not cast to string: %v", key, i, item)
+				}
+			}
+		default:
+			return nil, fmt.Errorf("invalid header value for key '%s': expected string or []string, got %T", key, v)
+		}
+	}
 	return headers, nil
 }
 
-func DecodeCompression(_ reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+// decodeHeadersFromStringMap handles map[string]string and converts it into http.Header.
+func decodeHeadersFromStringMap(m map[string]string) (http.Header, error) {
+	headers := http.Header{}
+	for key, value := range m {
+		if err := addHeader(&headers, key, value); err != nil {
+			return nil, err
+		}
+	}
+	return headers, nil
+}
+
+// decodeHeadersFromMultiValueMap handles map[string][]string and converts it into http.Header.
+func decodeHeadersFromMultiValueMap(m map[string][]string) (http.Header, error) {
+	headers := http.Header{}
+	for key, values := range m {
+		for _, value := range values {
+			if err := addHeader(&headers, key, value); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return headers, nil
+}
+
+// addHeader checks header key for validity and ads it to http.Header
+func addHeader(headers *http.Header, key string, value string) error {
+	if !httpguts.ValidHeaderFieldName(key) {
+		return fmt.Errorf("invalid header key: %s", key)
+	}
+	headers.Add(key, value)
+	return nil
+}
+
+func DecodeCompression(_ reflect.Type, t reflect.Type, data any) (any, error) {
 	if t != reflect.TypeOf(Compression(0)) {
 		return data, nil
 	}

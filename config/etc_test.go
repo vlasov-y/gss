@@ -94,6 +94,12 @@ var _ = Describe("Etc", func() {
 					h.Add("a", "b")
 					return h
 				}(),
+				"a: [b,c]\n": func() http.Header {
+					h := http.Header{}
+					h.Add("a", "b")
+					h.Add("a", "c")
+					return h
+				}(),
 				`{"A":"B:C"}`: func() http.Header {
 					h := http.Header{}
 					h.Add("A", "B:C")
@@ -108,8 +114,34 @@ var _ = Describe("Etc", func() {
 			}
 		})
 
+		It("should decode valid map[string]string", func() {
+			input := map[string]string{
+				"a": "b",
+				"c": "d",
+			}
+			expected := http.Header{}
+			expected.Add("a", "b")
+			expected.Add("c", "d")
+			output, err := config.DecodeHeaders(reflect.TypeOf(input), reflect.TypeOf(expected), input)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(output).To(Equal(expected))
+		})
+
+		It("should decode valid map[string][]string", func() {
+			input := map[string][]string{
+				"a": {"b", "c"},
+			}
+			expected := http.Header{}
+			expected.Add("a", "b")
+			expected.Add("a", "c")
+			output, err := config.DecodeHeaders(reflect.TypeOf(input), reflect.TypeOf(expected), input)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(output).To(Equal(expected))
+		})
+
 		It("should return an error for an invalid YAML/JSON", func() {
 			for _, input := range []any{
+				`a: ["asdf", 3, null, {"a":"b"}]`,
 				"a:\n  c: d\n",
 				"{",
 				"[]",
