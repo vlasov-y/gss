@@ -50,28 +50,6 @@ func DecodeTLSPrivateKey(f reflect.Type, t reflect.Type, data interface{}) (inte
 	if t != reflect.TypeOf(TLSPrivateKey{}) {
 		return data, nil
 	}
-	// Helper function to parse private keys from a PEM block
-	parsePrivateKey := func(block *pem.Block) (interface{}, error) {
-		var privateKey interface{}
-		var err error
-		switch block.Type {
-		case "RSA PRIVATE KEY":
-			privateKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
-		case "EC PRIVATE KEY":
-			privateKey, err = x509.ParseECPrivateKey(block.Bytes)
-		case "PRIVATE KEY":
-			privateKey, err = x509.ParsePKCS8PrivateKey(block.Bytes)
-			if ed25519Key, ok := privateKey.(ed25519.PrivateKey); ok {
-				privateKey = ed25519Key
-			} else {
-				err = errors.New("unsupported private key type in PKCS#8 format")
-			}
-		default:
-			err = fmt.Errorf("unsupported private key type %q", block.Type)
-		}
-		return privateKey, err
-	}
-
 	if f != reflect.TypeFor[string]() {
 		return nil, fmt.Errorf("private key expects a string, got %T", data)
 	}
@@ -98,6 +76,28 @@ func DecodeTLSPrivateKey(f reflect.Type, t reflect.Type, data interface{}) (inte
 		return nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
 	return TLSPrivateKey{Block: block, Key: privateKey}, nil
+}
+
+// Helper function to parse private keys from a PEM block
+func parsePrivateKey(block *pem.Block) (interface{}, error) {
+	var privateKey interface{}
+	var err error
+	switch block.Type {
+	case "RSA PRIVATE KEY":
+		privateKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	case "EC PRIVATE KEY":
+		privateKey, err = x509.ParseECPrivateKey(block.Bytes)
+	case "PRIVATE KEY":
+		privateKey, err = x509.ParsePKCS8PrivateKey(block.Bytes)
+		if ed25519Key, ok := privateKey.(ed25519.PrivateKey); ok {
+			privateKey = ed25519Key
+		} else {
+			err = errors.New("unsupported private key type in PKCS#8 format")
+		}
+	default:
+		err = fmt.Errorf("unsupported private key type %q", block.Type)
+	}
+	return privateKey, err
 }
 
 func DecodeTLSVersion(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
