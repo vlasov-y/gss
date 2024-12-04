@@ -80,6 +80,7 @@ var _ = Describe("ACME", func() {
 		It("should return an error for invalid domain", func() {
 			for _, input := range []any{
 				"com", ",", "", "*", "*.*", "invalid..com",
+				[]any{1},
 				[]int{1, 2, 3},
 				[]map[string]string{{"a": "b"}},
 				true, 3.14,
