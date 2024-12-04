@@ -138,6 +138,29 @@ var _ = Describe("Etc", func() {
 			Expect(output).To(Equal(expected))
 		})
 
+		It("should decode valid map[string]any ([]string)", func() {
+			input := map[string]any{
+				"a": []string{"b", "c"},
+			}
+			expected := http.Header{}
+			expected.Add("a", "b")
+			expected.Add("a", "c")
+			output, err := config.DecodeHeaders(reflect.TypeOf(input), reflect.TypeOf(expected), input)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(output).To(Equal(expected))
+		})
+
+		It("should decode valid map[string]any (string)", func() {
+			input := map[string]any{
+				"a": "b",
+			}
+			expected := http.Header{}
+			expected.Add("a", "b")
+			output, err := config.DecodeHeaders(reflect.TypeOf(input), reflect.TypeOf(expected), input)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(output).To(Equal(expected))
+		})
+
 		It("should return an error for an invalid YAML/JSON", func() {
 			for _, input := range []any{
 				`a: ["asdf", 3, null, {"a":"b"}]`,
