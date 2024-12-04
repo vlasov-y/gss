@@ -56,7 +56,6 @@ var _ = Describe("Etc", func() {
 			} {
 				_, err := config.DecodeCompression(reflect.TypeOf(input), reflect.TypeFor[config.Compression](), input)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("unsupported compression level"))
 			}
 		})
 	})
@@ -167,5 +166,30 @@ var _ = Describe("Etc", func() {
 				Expect(err).To(HaveOccurred())
 			}
 		})
+	})
+})
+
+var _ = Describe("Root", func() {
+	It("should use existing folder", func() {
+		symlink := filepath.Join(tempDir, "symlink")
+		Expect(os.Symlink("/tmp", symlink)).To(Succeed())
+		for input, expected := range map[string]config.Root{
+			"/tmp":        "/tmp",
+			"/":           "/",
+			"/tmp/../tmp": "/tmp",
+			tempDir:       config.Root(tempDir),
+			symlink:       config.Root(symlink),
+		} {
+			output, err := config.DecodeRoot(reflect.TypeOf(input), reflect.TypeOf(expected), input)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(output).To(Equal(expected))
+		}
+	})
+
+	It("should return an error for an invalid root path", func() {
+		for _, input := range []any{"invalid", "/etc/passwd", 100, true} {
+			_, err := config.DecodeRoot(reflect.TypeOf(input), reflect.TypeFor[config.Root](), input)
+			Expect(err).To(HaveOccurred())
+		}
 	})
 })

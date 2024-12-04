@@ -132,53 +132,45 @@ func addHeader(headers *http.Header, key string, value string) error {
 	return nil
 }
 
-func DecodeCompression(_ reflect.Type, t reflect.Type, data any) (any, error) {
+func DecodeCompression(f reflect.Type, t reflect.Type, data any) (any, error) {
 	if t != reflect.TypeOf(Compression(0)) {
 		return data, nil
 	}
-	switch v := data.(type) {
-	case string:
-		// Trim and convert to lowercase for case-insensitive comparisons
-		level := strings.ToLower(strings.TrimSpace(v))
-		// Map of valid string-based compression levels
-		levels := map[string]int8{
-			"none":    gzip.NoCompression,
-			"default": gzip.DefaultCompression,
-			"speed":   gzip.BestSpeed,
-			"best":    gzip.BestCompression,
-		}
-		// Check if level is in the map
-		if num, found := levels[level]; found {
-			return Compression(num), nil
-		}
-		// If not found in map, check if it's a valid integer within the gzip range
-		if num, err := strconv.Atoi(level); err == nil {
-			if num < gzip.DefaultCompression || num > gzip.BestCompression {
-				return nil, fmt.Errorf("unsupported compression level: %d (valid range: %d to %d)", num, gzip.DefaultCompression, gzip.BestCompression)
-			}
-			return Compression(num), nil
-		}
-		// Return error if the level is invalid
-		return nil, fmt.Errorf("unsupported compression level: %s", level)
-
-	case int, int8, int16, int32, int64:
-		// Handle integer types directly
-		num := reflect.ValueOf(data).Int()
-		if num < int64(gzip.DefaultCompression) || num > int64(gzip.BestCompression) {
-			return nil, fmt.Errorf("unsupported compression level: %d (valid range: %d to %d)", num, gzip.DefaultCompression, gzip.BestCompression)
-		}
-		return Compression(num), nil
-
-	case uint, uint8, uint16, uint32, uint64:
-		// Handle unsigned integers as well
-		num := reflect.ValueOf(data).Uint()
-		if num > uint64(gzip.BestCompression) {
-			return nil, fmt.Errorf("unsupported compression level: %d (valid range: %d to %d)", num, gzip.NoCompression, gzip.BestCompression)
-		}
-		return Compression(num), nil
-
+	var strLevel string
+	switch f.Kind() {
+	case reflect.String:
+		strLevel = strings.ToLower(strings.TrimSpace(data.(string)))
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		// Handle integer types and convert to string
+		strLevel = strconv.FormatInt(reflect.ValueOf(data).Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		// Handle unsigned integer types and convert to string
+		strLevel = strconv.FormatUint(reflect.ValueOf(data).Uint(), 10)
 	default:
 		// Unsupported type
 		return nil, fmt.Errorf("unsupported compression level type: %T", data)
 	}
+	// Map of valid string-based compression levels
+	levels := map[string]int8{
+		"none":    gzip.NoCompression,
+		"default": gzip.DefaultCompression,
+		"speed":   gzip.BestSpeed,
+		"best":    gzip.BestCompression,
+	}
+	// Check if level is in the map
+	var num int8
+	var ok bool
+	var err error
+	if num, ok = levels[strLevel]; !ok {
+		// If not found in map, check if it's a valid integer within the gzip range
+		var num64 int64
+		if num64, err = strconv.ParseInt(strLevel, 10, 8); err != nil {
+			return nil, fmt.Errorf("level %d is out int8 range", num64)
+		}
+		num = int8(num64)
+	}
+	if num < gzip.DefaultCompression || num > gzip.BestCompression {
+		return nil, fmt.Errorf("level %d is out of range (valid range: %d to %d)", num, gzip.DefaultCompression, gzip.BestCompression)
+	}
+	return Compression(num), nil
 }
